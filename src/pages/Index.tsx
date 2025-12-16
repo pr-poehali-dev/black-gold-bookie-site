@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,68 +24,29 @@ interface Match {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('live');
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const liveMatches: Match[] = [
-    {
-      id: 1,
-      sport: '⚽',
-      league: 'Премьер-лига',
-      team1: 'Манчестер Сити',
-      team2: 'Ливерпуль',
-      score1: 2,
-      score2: 1,
-      time: '67\'',
-      isLive: true,
-      odds: { win1: 1.85, draw: 3.40, win2: 4.20 }
-    },
-    {
-      id: 2,
-      sport: '🏀',
-      league: 'NBA',
-      team1: 'Лейкерс',
-      team2: 'Уорриорз',
-      score1: 88,
-      score2: 92,
-      time: 'Q3 8:45',
-      isLive: true,
-      odds: { win1: 2.10, win2: 1.70 }
-    },
-    {
-      id: 3,
-      sport: '🎾',
-      league: 'Australian Open',
-      team1: 'Медведев Д.',
-      team2: 'Алькарас К.',
-      score1: 2,
-      score2: 1,
-      time: 'Сет 3',
-      isLive: true,
-      odds: { win1: 1.55, win2: 2.40 }
-    }
-  ];
+  useEffect(() => {
+    fetchMatches();
+    const interval = setInterval(fetchMatches, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const popularMatches: Match[] = [
-    {
-      id: 4,
-      sport: '⚽',
-      league: 'Лига Чемпионов',
-      team1: 'Реал Мадрид',
-      team2: 'Бавария',
-      time: 'Сегодня 22:00',
-      isLive: false,
-      odds: { win1: 2.20, draw: 3.10, win2: 3.40 }
-    },
-    {
-      id: 5,
-      sport: '🏒',
-      league: 'КХЛ',
-      team1: 'ЦСКА',
-      team2: 'СКА',
-      time: 'Сегодня 19:30',
-      isLive: false,
-      odds: { win1: 2.05, draw: 3.80, win2: 3.20 }
+  const fetchMatches = async () => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/92946423-b3e5-493c-af06-fee34a1effa3');
+      const data = await response.json();
+      setMatches(data.matches || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      setLoading(false);
     }
-  ];
+  };
+
+  const liveMatches = matches.filter(m => m.isLive);
+  const popularMatches = matches.filter(m => !m.isLive);
 
   const sports = [
     { icon: 'TrendingUp', label: 'Все', value: 'all' },
@@ -259,11 +220,23 @@ const Index = () => {
                     {liveMatches.length} матчей
                   </Badge>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {liveMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {liveMatches.length > 0 ? (
+                      liveMatches.map((match) => (
+                        <MatchCard key={match.id} match={match} />
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground col-span-2 text-center py-8">
+                        Нет активных матчей
+                      </p>
+                    )}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="popular" className="space-y-4">
@@ -273,11 +246,23 @@ const Index = () => {
                     {popularMatches.length} матчей
                   </Badge>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {popularMatches.map((match) => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {popularMatches.length > 0 ? (
+                      popularMatches.map((match) => (
+                        <MatchCard key={match.id} match={match} />
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground col-span-2 text-center py-8">
+                        Нет предстоящих матчей
+                      </p>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </main>
